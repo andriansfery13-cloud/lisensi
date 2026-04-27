@@ -148,7 +148,11 @@ class LoaderGeneratorService
                     ];
                     @file_put_contents($__lsnsi_cache_file, json_encode($__lsnsi_cache, JSON_PRETTY_PRINT));
                     $__lsnsi_cache_valid = true;
+                } else {
+                    $__lsnsi_status = \'Signature Mismatch\';
                 }
+            } else {
+                $__lsnsi_status = \'Invalid JSON Response\';
             }
         } else {
             $__lsnsi_status = \'Connection Failed: \' . ($__lsnsi_err ?: \'HTTP \' . $__lsnsi_http);
