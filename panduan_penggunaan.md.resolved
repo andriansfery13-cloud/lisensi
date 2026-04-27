@@ -1,0 +1,361 @@
+# 📖 Panduan Penggunaan — License Management System v2
+
+Panduan lengkap cara menggunakan aplikasi License Management System untuk mengelola lisensi software Anda.
+
+---
+
+## 🔐 Login
+
+| Field | Value |
+|-------|-------|
+| URL | `http://127.0.0.1:8001/login` |
+| Email | `admin@admin.com` |
+| Password | `password` |
+
+> [!CAUTION]
+> Segera ganti password default setelah deploy ke production!
+
+---
+
+## 📊 Dashboard
+
+Halaman utama setelah login. Menampilkan:
+
+- **Total Licenses** — Jumlah semua lisensi yang pernah dibuat
+- **Active** — Lisensi yang aktif dan bisa dipakai
+- **Suspended** — Lisensi yang diberhentikan sementara
+- **Revoked** — Lisensi yang dicabut permanen
+- **Expired** — Lisensi yang sudah habis masa berlaku
+- **Expiring Soon** — Lisensi yang akan expired dalam 30 hari
+- **Heartbeat Chart** — Grafik aktivitas pengecekan lisensi 30 hari terakhir
+- **Recent Activations** — Domain terbaru yang mengaktifkan lisensi
+- **Audit Log** — Log aktivitas terbaru
+
+---
+
+## 🔑 Mengelola Lisensi
+
+### Membuat Lisensi Baru
+
+1. Klik **"+ New License"** atau **"Create License"**
+2. Isi formulir:
+   - **Product Name** — Nama aplikasi yang akan dilisensikan (contoh: "POS System Pro")
+   - **Customer Name** — Nama pembeli
+   - **Customer Email** — Email pembeli
+   - **License Type**:
+     - `Perpetual` — Selamanya, tidak pernah expire
+     - `Yearly` — Berlaku 1 tahun (auto-set tanggal)
+     - `Monthly` — Berlaku 1 bulan (auto-set tanggal)
+   - **Max Domains** — Berapa domain yang boleh menggunakan 1 lisensi ini
+   - **Notes** — Catatan internal (opsional)
+3. Klik **"Generate License"**
+4. Sistem akan auto-generate **Serial Number** dengan format: `LSNSI-XXXX-XXXX-XXXX-XXXX`
+
+> [!IMPORTANT]
+> Serial Number di-generate secara kriptografis dan memiliki checksum bawaan. Tidak bisa ditebak atau dipalsukan.
+
+### Melihat Detail Lisensi
+
+Klik serial number di tabel → halaman detail menampilkan:
+- Informasi lengkap lisensi
+- Serial number (bisa di-copy untuk diberikan ke customer)
+- Riwayat domain yang pernah mengaktifkan
+- Audit trail khusus lisensi ini
+
+### Mengedit Lisensi
+
+1. Klik ikon ✏️ atau tombol **"Edit"** di detail lisensi
+2. Yang bisa diubah: nama produk, data customer, tipe, max domains, tanggal expire, notes
+3. Yang **TIDAK bisa** diubah: Serial Number (permanen)
+
+### Suspend Lisensi (Sementara)
+
+Jika customer belum bayar atau ada masalah:
+1. Di detail lisensi, klik **"Suspend License"**
+2. Customer akan langsung tidak bisa menggunakan aplikasi
+3. Bisa di-**Reactivate** kapan saja
+
+### Revoke Lisensi (Permanen)
+
+Jika ingin mencabut lisensi secara permanen:
+1. Klik **"Revoke License (Permanent)"**
+2. ⚠️ **TIDAK BISA dibatalkan!**
+3. Semua domain yang terhubung akan otomatis di-deactivate
+4. Customer tidak bisa menggunakan aplikasi lagi
+
+### Transfer Domain
+
+Jika customer pindah domain:
+1. Buka detail lisensi
+2. Di bagian **"Transfer Domain"**, pilih domain lama
+3. Masukkan domain baru
+4. Klik **"Transfer"**
+
+> [!TIP]
+> Fitur ini berguna saat customer migrasi server atau ganti domain. Anda yang mengontrol perpindahan.
+
+---
+
+## 🌐 Domain Activations
+
+Menu **"Domain Activations"** menampilkan semua domain yang pernah mengaktifkan lisensi:
+
+- **Domain** — Nama domain
+- **Serial Number** — Lisensi yang dipakai
+- **IP Address** — IP server domain tersebut
+- **Server** — Hostname server
+- **Status** — Active / Inactive
+- **Deactivate** — Tombol merah untuk memutus koneksi domain
+
+### Cara Pakai:
+- Gunakan filter **"Active only"** untuk melihat domain yang sedang aktif saja
+- Klik tombol 🔴 untuk men-deactivate domain yang mencurigakan
+
+---
+
+## 📋 Audit Trail
+
+Menu **"Audit Trail"** mencatat SEMUA aktivitas di sistem:
+
+| Action | Artinya |
+|--------|---------|
+| `license_created` | Lisensi baru dibuat |
+| `license_activated` | Lisensi diaktifkan di domain |
+| `license_suspended` | Lisensi di-suspend |
+| `license_revoked` | Lisensi dicabut permanen |
+| `license_reactivated` | Lisensi di-reaktivasi |
+| `license_transferred` | Lisensi dipindah ke domain baru |
+| `license_updated` | Data lisensi diubah |
+| `domain_deactivated` | Domain di-deactivate manual |
+| `activation_denied_*` | Aktivasi ditolak (expired/suspended/revoked) |
+| `heartbeat_invalid_domain` | Pengecekan dari domain yang salah |
+| `activation_blocked_blacklist` | Domain terblokir oleh blacklist |
+
+> [!IMPORTANT]
+> Audit logs **tidak bisa dihapus atau diubah** (immutable). Ini menjamin integritas data.
+
+### Export CSV
+Klik tombol **"Export CSV"** untuk mengunduh semua log dalam format CSV.
+
+---
+
+## 🚫 Domain Blacklist
+
+Blokir domain tertentu agar tidak bisa mengaktifkan lisensi apapun:
+
+1. Masukkan nama domain (contoh: `pirated-site.com`)
+2. Isi alasan (opsional)
+3. Klik **"Block Domain"**
+
+Domain yang di-blacklist akan langsung ditolak saat mencoba aktivasi lisensi.
+
+Untuk membuka blokir, klik ikon 🔓 di daftar domain terblokir.
+
+---
+
+## ⚡ Loader Generator (Fitur Utama!)
+
+Ini adalah fitur untuk **membuat file lisensi yang ditempel ke aplikasi yang Anda jual**.
+
+### Cara Generate:
+
+1. Buka menu **"Loader Generator"**
+2. **Select License** — Pilih lisensi yang akan di-generate (harus berstatus Active)
+3. **API URL** — URL server lisensi Anda (default: `http://127.0.0.1:8001/api/v1`)
+   
+   > Saat production, ganti dengan URL publik Anda, contoh: `https://license.yourdomain.com/api/v1`
+
+4. **Cache Duration** — Berapa hari cache berlaku jika server tidak bisa dihubungi (default: 7 hari)
+5. **Heartbeat Interval** — Seberapa sering aplikasi mengecek ke server (default: 24 jam)
+6. **Enable Obfuscation** — Centang untuk mengenkode kode agar sulit dibaca/dimodifikasi
+7. Klik **"Generate & Download ZIP"**
+
+### Isi File ZIP:
+
+| File | Fungsi |
+|------|--------|
+| `license.php` | File utama — include di aplikasi client |
+| `license_cache.json` | Cache file — harus writable |
+| `README.txt` | Instruksi pemasangan |
+
+### Cara Pasang di Aplikasi Client:
+
+```php
+// Di file utama aplikasi Anda (index.php atau bootstrap/app.php)
+// Taruh di baris PALING ATAS:
+
+require_once __DIR__ . '/license.php';
+
+// Setelah baris ini, Anda bisa cek status lisensi:
+if (defined('LICENSE_VALID') && LICENSE_VALID === true) {
+    // Lisensi valid — lanjutkan aplikasi
+    echo "Serial: " . LICENSE_SERIAL;
+    echo "Domain: " . LICENSE_DOMAIN;
+    echo "Status: " . LICENSE_STATUS;
+    echo "Type: " . LICENSE_TYPE;
+}
+```
+
+### Setting Permission:
+
+```bash
+# Upload file ke root directory aplikasi
+# Set permission cache file:
+chmod 666 license_cache.json
+```
+
+> [!WARNING]
+> Jangan lupa set `license_cache.json` agar writable oleh web server!
+
+### Preview Code
+
+Klik **"Preview"** untuk melihat kode yang akan di-generate sebelum mengunduh.
+
+---
+
+## 🔒 Cara Kerja Proteksi
+
+Ketika aplikasi yang Anda jual dijalankan:
+
+```
+1. [App Start] → Load license.php
+2. [File Check] → Cek apakah file license.php dimodifikasi (SHA-256)
+3. [Domain Check] → Cek domain saat ini vs domain yang teregistrasi
+4. [Cache Check] → Cek cache lokal, masih valid?
+   ├─ YA dan heartbeat belum waktunya → ✅ Lanjut
+   └─ TIDAK atau sudah waktunya heartbeat → ke step 5
+5. [API Call] → Kirim heartbeat ke server Anda
+   ├─ Response valid → Update cache → ✅ Lanjut
+   └─ Response invalid/API error → Cek cache
+       ├─ Cache masih valid (< 7 hari) → ✅ Lanjut (grace period)
+       └─ Cache expired → ❌ BLOKIR APLIKASI
+6. [Signature Verify] → Verify HMAC SHA-256 signature response
+   ├─ Valid → ✅ Lanjut
+   └─ Invalid → ❌ BLOKIR (kemungkinan MITM attack)
+```
+
+---
+
+## 🛡️ Security Features
+
+| Fitur | Penjelasan |
+|-------|-----------|
+| **Serial Cryptographic** | Serial number di-generate dengan `random_bytes()` + checksum |
+| **No Delete** | Lisensi tidak bisa dihapus, hanya suspend/revoke |
+| **HMAC SHA-256** | Setiap request dan response ditandatangani digital |
+| **Domain Lock** | Serial hanya valid untuk domain yang sudah teregistrasi |
+| **Heartbeat** | Pengecekan periodik (default 24 jam) |
+| **Cache Fallback** | Grace period 7 hari jika server tidak bisa dihubungi |
+| **Anti-Tamper** | File hash check — jika dimodifikasi, lisensi invalid |
+| **Obfuscation** | Multi-layer encoding (opsional) |
+| **Audit Trail** | Semua aktivitas tercatat dan tidak bisa dihapus |
+| **Rate Limiting** | Maksimal 30 request/menit per IP |
+| **Blacklist** | Blokir domain dari menggunakan lisensi |
+| **Immutable Logs** | Log audit tidak bisa di-update atau di-delete |
+
+---
+
+## 📡 API Endpoints (Untuk Integrasi Manual)
+
+Jika ingin melakukan integrasi manual tanpa loader generator:
+
+### Activate License
+```bash
+curl -X POST http://YOUR-SERVER/api/v1/activate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "serial_number": "LSNSI-XXXX-XXXX-XXXX-XXXX",
+    "domain": "client-app.com",
+    "ip": "1.2.3.4",
+    "server_info": {"hostname": "srv01", "php": "8.4"}
+  }'
+```
+
+### Heartbeat
+```bash
+curl -X POST http://YOUR-SERVER/api/v1/heartbeat \
+  -H "Content-Type: application/json" \
+  -d '{
+    "serial_number": "LSNSI-XXXX-XXXX-XXXX-XXXX",
+    "domain": "client-app.com",
+    "ip": "1.2.3.4"
+  }'
+```
+
+### Response Format
+```json
+{
+  "status": "valid",
+  "message": "License is valid.",
+  "timestamp": 1714200000,
+  "license": {
+    "type": "perpetual",
+    "expires_at": null,
+    "product": "POS System Pro"
+  },
+  "next_heartbeat": 86400,
+  "signature": "hmac_sha256_hash_here"
+}
+```
+
+---
+
+## 🚀 Deploy ke Production
+
+### Checklist:
+
+1. **Ganti database** dari SQLite ke MySQL:
+   ```env
+   DB_CONNECTION=mysql
+   DB_HOST=127.0.0.1
+   DB_DATABASE=license_manager
+   DB_USERNAME=root
+   DB_PASSWORD=your_password
+   ```
+
+2. **Ganti secret keys** di `.env`:
+   ```env
+   LICENSE_SECRET_KEY=your-production-secret-key
+   LICENSE_ENCRYPTION_KEY=your-production-encryption-key
+   LOADER_OBFUSCATION_SALT=your-production-salt
+   ```
+
+3. **Ganti password admin** setelah login pertama kali
+
+4. **Pasang HTTPS** — Wajib untuk keamanan API
+
+5. **Update API URL** di loader generator sesuai domain production:
+   ```
+   https://license.yourdomain.com/api/v1
+   ```
+
+6. **Set APP_ENV** ke production:
+   ```env
+   APP_ENV=production
+   APP_DEBUG=false
+   ```
+
+> [!CAUTION]
+> Jika `LICENSE_SECRET_KEY` berubah setelah Anda sudah generate loader files, semua loader yang lama akan gagal validasi signature. Generate ulang loader untuk semua customer!
+
+---
+
+## ❓ FAQ
+
+**Q: Apakah customer bisa menghapus file license.php?**
+A: Bisa secara fisik, tapi aplikasi tidak akan jalan karena file `license.php` harus di-require di baris pertama.
+
+**Q: Bagaimana jika server lisensi saya down?**
+A: Ada grace period (default 7 hari) menggunakan cache lokal. Customer tetap bisa pakai selama cache belum expired.
+
+**Q: Bisa multi-domain?**
+A: Ya, set `Max Domains` saat membuat lisensi. Contoh: set ke 3, maka 1 serial bisa dipakai di 3 domain berbeda.
+
+**Q: Bagaimana jika customer ganti domain?**
+A: Gunakan fitur **"Transfer Domain"** di detail lisensi. Hanya admin yang bisa melakukan transfer.
+
+**Q: Apakah lisensi bisa dihapus?**
+A: **Tidak.** Lisensi hanya bisa di-suspend (sementara) atau di-revoke (permanen). Ini untuk menjaga audit trail yang lengkap.
+
+**Q: Apa bedanya Suspend dan Revoke?**
+A: Suspend bisa dikembalikan (reactivate), Revoke bersifat permanen dan tidak bisa dibatalkan.
