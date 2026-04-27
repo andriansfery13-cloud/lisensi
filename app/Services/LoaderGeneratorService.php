@@ -116,23 +116,28 @@ class LoaderGeneratorService
             CURLOPT_POSTFIELDS => $__lsnsi_post,
             CURLOPT_HTTPHEADER => [\'Content-Type: application/json\', \'Accept: application/json\'],
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 15,
-            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_TIMEOUT => 20,
+            CURLOPT_SSL_VERIFYPEER => false, // Set to true in production if possible
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_USERAGENT => \'LicenseLoader/2.0 (PHP \' . PHP_VERSION . \')\',
         ]);
 
         $__lsnsi_resp = curl_exec($__lsnsi_ch);
         $__lsnsi_http = curl_getinfo($__lsnsi_ch, CURLINFO_HTTP_CODE);
+        $__lsnsi_err = curl_error($__lsnsi_ch);
         curl_close($__lsnsi_ch);
 
         if ($__lsnsi_http === 200 && $__lsnsi_resp) {
             $__lsnsi_result = @json_decode($__lsnsi_resp, true);
             if ($__lsnsi_result) {
                 // Verify response signature
-                $__lsnsi_verify_data = json_encode([
+                $__lsnsi_verify_data = [
                     \'status\' => $__lsnsi_result[\'status\'] ?? \'\',
                     \'timestamp\' => $__lsnsi_result[\'timestamp\'] ?? 0,
-                ], JSON_UNESCAPED_SLASHES);
-                $__lsnsi_expected_sig = hash_hmac(\'sha256\', $__lsnsi_verify_data, $__lsnsi_key);
+                ];
+                ksort($__lsnsi_verify_data);
+                $__lsnsi_verify_payload = json_encode($__lsnsi_verify_data, JSON_UNESCAPED_SLASHES);
+                $__lsnsi_expected_sig = hash_hmac(\'sha256\', $__lsnsi_verify_payload, $__lsnsi_key);
 
                 if (hash_equals($__lsnsi_expected_sig, $__lsnsi_result[\'signature\'] ?? \'\')) {
                     // Valid response - save to cache
@@ -145,6 +150,8 @@ class LoaderGeneratorService
                     $__lsnsi_cache_valid = true;
                 }
             }
+        } else {
+            $__lsnsi_status = \'Connection Failed: \' . ($__lsnsi_err ?: \'HTTP \' . $__lsnsi_http);
         }
     }
 
@@ -196,6 +203,10 @@ class LoaderGeneratorService
     public function obfuscateCode(string $code): string
     {
         $salt = env('LOADER_OBFUSCATION_SALT', 'default-salt');
+        
+        // IMPORTANT: Strip <?php tag because eval() cannot process PHP opening tags
+        $code = preg_replace('/^\s*<\?php\s*/i', '', $code);
+        $code = trim($code);
         
         // Layer 1: Base64 encode
         $encoded = base64_encode($code);
